@@ -41,7 +41,8 @@ class UserLogTransformer(Transformer):
             * Thumbs Up
             * Upgrade
         * frequencies of log event types defined as count / period for the events above
-        * 1-hot encoded list of user agents
+        * 1-hot encoded list of operating systems seen on userId
+        * 1-hot encoded list of browser engines seen on userId
 
     Events interpreted as churn are deleted from the dataset:
     * Cancellation Confirmation
@@ -62,19 +63,27 @@ class UserLogTransformer(Transformer):
                                    F.max("_count").alias("max_session_events"),
                                    F.sum('_count').alias("total_session_events"))
         # user interaction period stats and per user stats
-        df_user_periods = dataset.select('userId', 'ts', 'gender', 'level', 'registration').groupBy('userId')\
+        df_by_user = dataset.select('userId', 'ts', 'gender', 'level', 'registration').groupBy('userId')\
             .agg(F.min('ts').alias("ts_min"),
                  F.max('ts').alias("ts_max"),
                  F.first('gender').alias('gender'),
                  F.first('level').alias('level'),
                  F.first('registration').alias('registration'),
                  ((F.max('ts')-F.min('ts')) / (3600 * 24 * 1000)).alias('period'))
+        # user browser and operating system counts
+        df_os_browser = dataset.select('userId', 'userAgent',
+                                       F.regexp_extract(F.col('userAgent'), ".*?(\(.*\)).*", 1).alias('os'),
+                                       F.regexp_extract(F.col('userAgent'), ".*\s(.*)", 1).alias('browser'))
+        df_os_onehot = df_os_browser.groupBy('userId').pivot('os')\
+            .agg(F.countDistinct('userId').alias('os')).fillna(0)
+        df_browser_onehot = df_os_browser.groupBy('userId').pivot('browser') \
+            .agg(F.countDistinct('userId').alias('browser')).fillna(0)
         # user page counts and frequencies
-        df_page_counts = dataset.select('userId', 'page').join(df_user_periods.select('userId', 'period'), on='userId')\
+        df_page_counts = dataset.select('userId', 'page').join(df_by_user.select('userId', 'period'), on='userId')\
             .groupBy('userId').pivot('page').agg(F.count('userId').alias('count'),
                                                  (F.count('userId') / F.first('period')).alias('freq')).fillna(0)\
             .drop('Cancel_count', 'Cancellation Confirmation_count', 'Downgrade_count', 'Submit Downgrade_count',
                   'Cancel_freq', 'Cancellation Confirmation_freq', 'Downgrade_freq', 'Submit Downgrade_freq')
 
-        return df_session_stats.join(df_user_periods, on='userId')\
-            .join(df_page_counts, on='userId')
+        return df_session_stats.join(df_by_user, on='userId').join(df_page_counts, on='userId')\
+            .join(df_os_onehot, on='userId').join(df_browser_onehot, on='userId')
