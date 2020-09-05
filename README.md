@@ -28,8 +28,8 @@ The initial data exploration was performed on a 120MB miniature subsample of the
 
 Note that this schema is already typed via the schema definition and preprocessing described below.
 
-8346 rows have empty userIds, so that 228108 usable log entries remain. We define churn as a user cancelling their 
-subscription and we use "confirm cancellation" events in the log. We 52 of these in the log excerpt. It contains 225 
+8346 rows have empty userIds, so that 228108 usable log entries remain. I define churn as a user cancelling their 
+subscription and I use "confirm cancellation" events in the log. I 52 of these in the log excerpt. It contains 225 
 distinct userIds, 52 of which have churned, the remaining 173 users were kept.
 
 The highest level comparison between users is the number of their logged interactions.
@@ -40,7 +40,7 @@ distribution. Nearly all users have somewhere between 0 and 2500 interactions, b
 log excerpt have up to 10000 interactions.
  
 Breaking down the interaction counts between churned (defined as users who cancelled their subscription) and kept 
-users, we find that, unsurprisingly, the kept users extend to the highest interaction counts, while the churned users 
+users, I find that, unsurprisingly, the kept users extend to the highest interaction counts, while the churned users 
 are limited to somewhat lower interaction counts and have a more pronounced maximum at the low end. The former 
 observation is natural, as users who keep their subscription will continue to interact, while cancelled users do not.
 The larger number of low interaction count users is most likely caused by users who try out the service and decide
@@ -65,7 +65,7 @@ up 82% of all log events (228108 of 278154 in the small version of the data set)
  
 ![Counts of log event types (log y-scale)](doc_img/Events_Histogram.png)
 
-For a closer look, we will compare the event distributions between churned and kept users. Since the number of kept 
+For a closer look, I will compare the event distributions between churned and kept users. Since the number of kept 
 users is much larger than that of churned users, the data is normalized to the total number of events in each group.
 Again, the fractions are plotted on a log scale to make it possible to compare all event types in a single plot.
 
@@ -164,6 +164,9 @@ Some aggregates were removed during the training since they were identified as p
   very likely to have cancelled their subscription already
     
 ## Machine Learning
+
+
+
 ### Procedure
 ### Results
 
