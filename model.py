@@ -13,6 +13,7 @@ class UserLogTransformer(Transformer):
     * user base data:
         * gender
         * level
+        * user changed level in logged period
         * registration (time tamp)
     * aggregated log data
         * avg_session_events  mean number of log events per session
