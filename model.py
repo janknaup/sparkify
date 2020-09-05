@@ -19,8 +19,6 @@ class UserLogTransformer(Transformer):
         * min_session_events
         * max_session_events
         * total_session_events
-        * ts_min  timestamp of earliest log event
-        * ts_max  timestamp of most recent log event
         * period  interval in days between earliest and latest log event
         * counts of log event types (pages)
             * About
@@ -118,7 +116,7 @@ class UserLabelTransformer(Transformer):
     def _transform(self, dataset):
         return dataset.select('userId', F.when((dataset.page == 'Cancellation Confirmation'),
                                                1).otherwise(0).alias('churn'))\
-            .groupBy('userId').agg(F.max('churn').alias('churned'))
+            .groupBy('userId').agg(F.max('churn').alias('label'))
 
 
 class TrainingAssembler(Transformer):
@@ -131,11 +129,10 @@ class TrainingAssembler(Transformer):
 
     def _transform(self, dataset):
         input_cols = dataset.columns
-        input_cols.remove('churned')
+        if 'label' in input_cols:
+            input_cols.remove('label')
         vectassemble = VectorAssembler(inputCols=input_cols, outputCol='features', handleInvalid='skip')
-        return vectassemble.transform(dataset).select(
-            F.column('churned').alias('label'), 'features', 'userId'
-        )
+        return vectassemble.transform(dataset).select('features', 'userId')
 
 
 class MasterTransformer(Transformer):
@@ -147,4 +144,4 @@ class MasterTransformer(Transformer):
         logtransform = UserLogTransformer()
         labeltransform = UserLabelTransformer()
         assembler = TrainingAssembler()
-        return assembler.transform(logtransform.transform(dataset).join(labeltransform.transform(dataset), on='userId'))
+        return assembler.transform(logtransform.transform(dataset)).join(labeltransform.transform(dataset), on='userId')
