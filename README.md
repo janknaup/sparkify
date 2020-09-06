@@ -255,4 +255,4 @@ Requires Python version 3.7 or higher (tested using version 3.8.3)
 * plotly 4.8.2
 * pyspark 3.0.0
 * spark 2.5.4
-* flask X.Y.Z
+* flask 1.1.0
