@@ -9,18 +9,20 @@ from pyspark.sql import functions as F
 from pyspark.ml.classification import LinearSVC
 from model import LogCleanTransformer, UserLogTransformer, TrainingAssembler
 import plotly.express as px
-import plotly.graph_objects as go
+import plotly.graph_objects as gob
 
 spark = SparkSession \
     .builder \
-    .appName("Churn") \
+    .appName("Churn_Dashboard") \
     .getOrCreate()
 
 
 
 app = Flask(__name__)
-model = LinearSVC.load('lsvc_model')
-
+#model = LinearSVC.load('lsvc_model')
+df_pred = spark.read.json('results_model/lsvc-prediction.json')
+df_train = spark.read.json('results_model/traindata.json')
+df_test = spark.read.json('results_model/testdata.json')
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -29,83 +31,34 @@ model = LinearSVC.load('lsvc_model')
 def index():
     
     # extract data needed for visuals
-    genre_counts = df.groupby('genre').count()['message']
-    genre_names = list(genre_counts.index)
+    confusion_counts = df_pred.withColumn('true negative', (1.0 - F.col('prediction') * (1.0 - F.col('label'))))\
+        .agg(F.sum('tp').alias('true positive'), F.sum('fp').alias('false positive'),
+                F.sum('fn').alias('false negative'), F.sum('true negative').alias('true negative'))
 
-    categories = list(df.columns)
-    for remcol in ["message", "original", "id", "genre"]:
-        categories.remove(remcol)
-
-    category_counts = df[categories].sum().values
-    english_category_counts = df.loc[df['original'].isna().values][categories].sum().values
-
-    genre_category_counts = df.groupby('genre').sum()[categories]
+    confusion_names = confusion_counts.columns
+    confusion_values = [confusion_counts.collect()[0][col] for col in confusion_names]
 
     # create visuals
     graphs = [
         {
             'data': [
-                Bar(
-                    x=genre_names,
-                    y=genre_counts
+                gob.Pie(
+                    labels=confusion_names,
+                    values=confusion_values
                 )
             ],
 
             'layout': {
-                'title': 'Distribution of Message Genres',
+                'title': 'Test Data Prediction Quality',
                 'yaxis': {
                     'title': "Count"
                 },
                 'xaxis': {
-                    'title': "Genre"
+                    'title': "Classification Result"
                 }
             }
         },
-        {
-            'data': [
-                Bar(
-                    x=categories,
-                    y=category_counts - english_category_counts,
-                    name='Other'
-                ),
-                Bar(
-                    x=categories,
-                    y=english_category_counts,
-                    name='English'
-                )
-            ],
 
-            'layout': {
-                'title': 'Distribution of Message Categories<br>By Original Message Language',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Category"
-                },
-                'barmode': 'stack'
-            }
-        },
-        {
-            'data': [
-                Bar(
-                    x=categories,
-                    y=100 * genre_category_counts.loc[genre] / category_counts,
-                    name=genre
-                ) for genre in genre_names
-            ],
-
-            'layout': {
-                'title': 'Proportion of Message Genres by Category',
-                'yaxis': {
-                    'title': "Genre Percentage"
-                },
-                'xaxis': {
-                    'title': "Category"
-                },
-                'barmode': 'stack'
-            }
-        }
     ]
     
     # encode plotly graphs in JSON
@@ -123,8 +76,8 @@ def go():
     query = request.args.get('query', '') 
 
     # use model to predict classification for query
-    classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(df.columns[4:], classification_labels))
+    #classification_labels = model.predict([query])[0]
+    classification_results = dict(zip(df_pred.columns[4:], classification_labels))
 
     # This will render the go.html Please see that file. 
     return render_template(
