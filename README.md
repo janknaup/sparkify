@@ -165,10 +165,80 @@ Some aggregates were removed during the training since they were identified as p
     
 ## Machine Learning
 
-
+The goal of the machine learning in this project is to predict from a users log history, whether this user is likely to
+churn or not. This is a classification problem. For the initial exploration, I decided to try logistic regression, 
+random forest classification and linear support vector classification. After hyperparameter tuning of the three methods, 
+I will use the best performing one with the best set of parameters on a larger dataset to train a production model.
 
 ### Procedure
+
+For training end evaluation, the data will be split into tree parts for the exploration and into two parts for training 
+the production model. The split is performed by user, on the dataframe of features and labels. Splitting the log data, 
+would require stratifying by userId, and invole reshuffling the big, pre-aggregation dataset.
+
+In the exploration part, I split the data into 10% + 15% + 75% parts, for testing of the trained models, 15% for 
+validation within the hyperparameter tuning and 80% for training. The 5% test data are split off using, the randomSplit 
+method, the split between training and validation data has to be done using the TrainValidationSplit class in the 
+Spark mllib to perform automatic model parameter tuning. To obtain the desired 15%/75% split of the data, a trainRatio 
+parameter of 0.8333... has to be used (0.75 / 0.90). 
+
+The data pre-processing is performed by subclassing the mllib Transformer class. To obtain a maintainable code structure, 
+I split the preprocessing into the following structure:
+
+* LogCleanTransformer - Performs the log data cleaning, i.e. dropping all rows with empty userId
+* UserLogTransformer - Performs the feature extraction and returns a dataframe containing userId and the extracted 
+  feature columns.
+* UserLabelTransformer - Creates a 'label' column marking churned users as 1 and non-churned users as 0
+* TrainingAssembler - Assembles the feature columns into a vector suitable for the classifiers in mllib. 
+* MasterTransformer - Applies the UserLabelTransformer and TrainingAssembler on the cleaned data for model training
+
+After training and tuning the models, the classifier that achieved the best F1 score is trained on a medium size data 
+set using a cloud instance in IBM Watson Studio. The Notebook used for this training is Sparkify_IBM.ipynb. There, the 
+best parameters identified in the exploration are used. Therefore, the train-validation split is not required any more.
+Instead, only the 10% test data is split off and used to calculate the F1 score of the trained model's predictions, to 
+guard against over-fitting.
+
 ### Results
+
+#### ML Exploration
+
+The tested classifiers are logistic regression, random forest classification and linear support vector classification. 
+For logistic regression and linear SVC, I tune the maximum iterations and regularization parameter, for random forest 
+classification I tune the maximum depth and number of trees. 
+
+The comparison between classifiers is done on the basis of the F1 score on the test set, using the optimized parameters.
+The results shown in the table below indicate that linear SVC quite clearly performs better than the two others, which 
+in turn have very similar performance.  
+
+Classifier | F1 Score
+---------- | --------
+Logistic Regression | 0.461
+Random Forest | 0.444
+Linear Support Vector Classification | 0.571
+
+The scores for all three classifiers are not impressive. The relatively weak performance can be attributed to the small 
+training set used in the local exploration. This assumption will be tested in the next step by using a larger data set 
+to train the model. 
+
+#### Linear Support Vector Classification on Medium Data Set
+
+The final trained model's *F1 score is 0.923*, which constitutes a remarkable improvement over the accuracy that could 
+be obtained on the small size data set. It confirms the assumption, that the exploration data set is simply too small 
+to suffiently train an ML classifier. The figure below shows the matrix of confusion as a pie chart.
+
+![Matrix of confusion components ](doc_img/IBM_model_test_moc_pie.png) 
+
+In table form, the matrix of confusion is:
+
+|churn|actual|true|false
+|-----|------|----|-----
+**predicted**|**true**|6|0
+**predicted**|**false**|1|34
+
+On the test data set, the model produced only one false prediction, which was a false negative.
+
+Overall, based on the available test data the model performs very well. It should be useful to classify users and give 
+warning about users who may be close to cancelling their subscription.
 
 ## Web Application
 
