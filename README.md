@@ -224,11 +224,11 @@ to train the model.
 
 The final trained model's *F1 score is 0.923*, which constitutes a remarkable improvement over the accuracy that could 
 be obtained on the small size data set. It confirms the assumption, that the exploration data set is simply too small 
-to suffiently train an ML classifier. The figure below shows the matrix of confusion as a pie chart.
+to suffiently train an ML classifier. The figure below shows the confusion matrix as a pie chart.
 
-![Matrix of confusion components ](doc_img/IBM_model_test_moc_pie.png) 
+![Confusion matrix components ](doc_img/IBM_model_test_moc_pie.png) 
 
-In table form, the matrix of confusion is:
+In table form, the confusion matrix is:
 
 |churn|actual|true|false
 |-----|------|----|-----
