@@ -2,6 +2,23 @@
 Application to predict whether a spotify user is likely to churn, i.e. to cancel or downgrade their subscription, 
 based on their activity. User activity is read as a pre-processed web log in JSON format.
 
+## Overview and Problem
+
+The project is centered around user interaction logs from the audio streaming service Spotify. The problem is to help 
+minimize user churn, i.e. users cancelling their subscription. To achieve this, those users who are likely to churn 
+need to be identified. Since the user interaction logs contain nearly all the information Spotify has about their users, 
+applying machine learning algorithms to identify such users is the most promising approach.
+
+In the scope of this project, the problem to be solved is to generate a machine learning model which can classify users
+who are likely to churn by analysis of their interaction log data.
+
+Success shall be measured by the F1 score, which the final trained model achieves on a test subset of the provided log 
+data. This score is particularly useful, as it relates the true positive rate to both types false classifications. The 
+purpose of identifying users who are about to churn is being able to apply specific measures, such as special rebates or
+other targeted customer retention measures. Since these measures are relatively expensive, it should be avoided to apply
+them unnecessary (false positives). At the same time, missing such customers and therefore increasing the churn rate 
+(false negatives) is equally negative. 
+
 ## Data Exploration
 
 The initial data exploration was performed on a 120MB miniature subsample of the full data set. It contains 286500 raw 
