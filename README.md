@@ -159,13 +159,21 @@ easily by SQL-like operations:
         * Submit Upgrade
     * frequencies of log event types - Defined as count / period for the events above per user
     * 1-hot encoded list of operating systems seen on userId - Obtained by splitting the user agent strings using a 
-      regular expression and pivoting the resulting column. The OS determination is not ideal, sicne user agent strings 
+      regular expression and pivoting the resulting column. The OS determination is not ideal, since user agent strings 
       vary wildly, but the resulting strings are unique.
-    * 1-hot encoded list of browser engines seen on userId - Same as operating system with the same problems. 
+      It should be noted that advancing browser versions can lead to these features becoming less relevant, the further
+      the model training lies in the past, relative to new log data being analyzed.
+    * 1-hot encoded list of browser engines seen on userId - Same as operating system with the same limitations. 
     
-User first- and last name, as well as song names are not evaluated here. Song names would add a huge number of 
-categorical variables and users outside the training set, on which the model would be used, are likely to have 
-additional category levels.
+User first- and last name, as well as song names are not evaluated here. While on a much larger data set, user names 
+might allow some groupings by cultural or economic background, a set of only 225 users cannot possibly allow any 
+meaningul results in this regard. Therefore, the user's names must be regarded as random with respect to preferences and
+churn likelihood.
+
+Song names would add a huge number of categorical variables and users outside the training set, on which the model 
+would be used, are likely to have additional category levels. Once can imagine extensive NLP analysis of song names to 
+determine preferred genres or other song-related features, but such anlysis would only really make sense in combination 
+with databases of additional song data.
 
 Events interpreted as churn are deleted from the dataset:
 * Cancellation Confirmation
@@ -175,7 +183,7 @@ Churn-related events that are deleted to avoid data leakage:
 
 Some aggregates were removed during the training since they were identified as problematic:
 * Time stamp of first log event - 
-  Related to the age of the user account ad redundant with the registration time stamp
+  Related to the age of the user account and redundant with the registration time stamp
 * Time stamp of latest log event - 
   Leads to data leakage and therefore over-fitting. A user who's latest log event is further in the past than others is
   very likely to have cancelled their subscription already
