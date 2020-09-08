@@ -102,6 +102,10 @@ cancellation. Another pronounced difference can be found in the observation that
 more thumbs down events. This is a clear indicator that dissatisfaction with either the available selection or the 
 part of the selection users find by searching or recommendations drives the risk of service cancellation. 
 
+Other information that may correlate to a user's likelihood to churn is their choice of operating system and web 
+browser. These data will be extracted in the feature engineering section and will be discussed in the training results 
+section below.
+
 ## Operation
 
 ### Input Data Filtering
@@ -247,6 +251,60 @@ to train the model.
 
 #### Linear Support Vector Classification on Medium Data Set
 
+The medium sized data set used for training in the IBM cloud has log data on 448 distinct users. 34 of these are used for
+testing, the remaining 414 for training of the model.
+
+The distribution of browsers and operating systems is quite interesting, if nothing else, then from a historical 
+perspective. As the figure below shows, there is a strong plurality of Internet Explorer users (user agent Trident) 
+among the data set, which hints at the age of the data set. Equally interesting is the observation that there is a 
+pronounced difference in browser usage between churned and kept users. Safari uses tend to be be represented stronger 
+among the churned than IE users.
+   
+![Confusion matrix components ](doc_img/User_Borwser_fractions.png)
+
+Within the operating systems, it is interesting to see, that also the OS version, not just the family makes a 
+significant difference between churned and non churned users. It should be noted, that the OS and browser fractions 
+will add up to more than 1, since users are rather likely to have accessed spotify using more than one browser or 
+operating system version.
+
+![Confusion matrix components ](doc_img/user_os_fractions.png)
+
+The frequency of advertisements rolled out to users per month is quite interesting. It is obtained by dividing the 
+number of roll advert events by the difference between earliest and latest event time stamp in months. To make the 
+histogram readable, it is necessary to show the percentage axis in logarithmic scale. It can be seen, the the 
+majority of non-churned users dies not get any adverts at all. This is likely more correlated to the paid subscription 
+status than the effect of adverts. It cannot be decided if adverts are driving users away, or if they were not 
+interested enough in the service to pay for a subscription in the first place. 
+
+![Confusion matrix components ](doc_img/user_add_freq.png)
+
+To answer the question, whether the subscription level or advertisements are more important in determining user churn, 
+it is interesting to look at the distribution of the user's maximum subscription level. This is 1 if the user ever 
+produced log events while in paid subscription status. Interestingly, here the fraction of one time paid subscribers 
+is higher among the churned users than the kept ones (even though the difference is small). This hints clearly that the 
+effect of the advert roll frequency is more directly linked to the advertisements and not a side effect of paid 
+subscription.  
+
+![Confusion matrix components ](doc_img/user_maxlev.png)
+
+The distribution of "next song" frequencies shown below basically confirms the hypothesis proposed in the exploration 
+selection above. A high frequency of next song events indicates that the respective user does not like the music played 
+to them. If a users is dissatisfied with the available selections or recommendations, they are more likely to leave. 
+Tellingly, 62% of the non-churned users have less than 20 next song events per month. Curiously, one user has over 400
+next song events per month, but so far has not minded enough to give up.
+
+![Confusion matrix components ](doc_img/user_next_song_freq.png)
+
+Looking at the log periods, i.e. is the time difference between earliest and latest log events, the distribution of the 
+kept users is quite interesting. The number is constantly low between 0-30 months, then rises roughly linear. If Spotify 
+was gaining users at constant pace, the users per period interval should be roughly constant. The rise towards long 
+periods indicates that Spotify is approaching peak market penetration. In contrast, the distribution of churned users 
+is not surprising. Apparently a user is more likely to churn relatively early on, which is consistent with the 
+observation that dissatisfaction with the music selection dives churn. Users are likely to decide this rather earlier 
+than later, instead of waiting a long time for the selection to improve. 
+
+![Confusion matrix components ](doc_img/user_periods.png)
+
 The final trained model's *F1 score is 0.923*, which constitutes a remarkable improvement over the accuracy that could 
 be obtained on the small size data set. It confirms the assumption, that the exploration data set is simply too small 
 to suffiently train an ML classifier. The figure below shows the confusion matrix as a pie chart.
@@ -258,7 +316,7 @@ In table form, the confusion matrix is:
 |churn|actual|true|false
 |-----|------|----|-----
 **predicted**|**true**|6|0
-**predicted**|**false**|1|34
+**predicted**|**false**|1|27
 
 On the test data set, the model produced only one false prediction, which was a false negative.
 
