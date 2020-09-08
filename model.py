@@ -1,6 +1,7 @@
 from pyspark.sql import functions as F
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml import Transformer
+from pyspark.sql.types import DoubleType, ArrayType
 
 
 KNOWN_BROWSERS = ['Firefox240',
@@ -64,7 +65,8 @@ KNOWN_OS = ['MacintoshIntelMacOSX106rv310',
             'iPhoneCPUiPhoneOS7_1_2likeMacOSXAppleWebKit537512KHTMLlikeGecko',
             'iPhoneCPUiPhoneOS7_1likeMacOSXAppleWebKit537512KHTMLlikeGecko']
 
-FEATURE_COLUMNS = ['registration',
+FEATURE_COLUMNS = ['userId_',
+                   'registration',
                    'period',
                    'About_count',
                    'About_freq',
@@ -326,3 +328,19 @@ class MasterTransformer(Transformer):
         labeltransform = UserLabelTransformer()
         assembler = TrainingAssembler()
         return assembler.transform(logtransform.transform(dataset)).join(labeltransform.transform(dataset), on='userId')
+
+
+class FeatureUnassembler(Transformer):
+    """
+    Disassemble a feature vector back to columns.
+
+    For analysis of features stored from large scale ML runs.
+    """
+
+    def _transform(self, dataset):
+        toarr = F.udf(lambda col: col.toArray().tolist(), ArrayType(DoubleType()))
+        colspec = []
+        df_temp = dataset.withColumn("ar", toarr(F.col('features'))).select(['userId'] +
+                                                                            [F.col("ar")[i] for i in
+                                                                            range(len(FEATURE_COLUMNS))])
+        return df_temp.toDF('userId', *FEATURE_COLUMNS)
