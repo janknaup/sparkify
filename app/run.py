@@ -31,7 +31,7 @@ df_test = spark.read.json('results_model/testdata.json')
 def index():
     
     # extract data needed for visuals
-    confusion_counts = df_pred.withColumn('true negative', (1.0 - F.col('prediction') * (1.0 - F.col('label'))))\
+    confusion_counts = df_pred.withColumn('true negative', ((1.0 - F.col('prediction')) * (1.0 - F.col('label'))))\
         .agg(F.sum('tp').alias('true positive'), F.sum('fp').alias('false positive'),
                 F.sum('fn').alias('false negative'), F.sum('true negative').alias('true negative'))
 
