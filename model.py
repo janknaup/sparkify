@@ -339,7 +339,6 @@ class FeatureUnassembler(Transformer):
 
     def _transform(self, dataset):
         toarr = F.udf(lambda col: col.toArray().tolist(), ArrayType(DoubleType()))
-        colspec = []
         df_temp = dataset.withColumn("ar", toarr(F.col('features'))).select(['userId'] +
                                                                             [F.col("ar")[i] for i in
                                                                             range(len(FEATURE_COLUMNS))])
