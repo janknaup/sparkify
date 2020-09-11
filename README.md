@@ -239,35 +239,62 @@ The comparison between classifiers is done on the basis of the F1 score on the t
 The results shown in the table below indicate that linear SVC quite clearly performs better than the two others, which 
 in turn have very similar performance.  
 
-Classifier | F1 Score
----------- | --------
-Logistic Regression | 0.461
-Random Forest | 0.444
-Linear Support Vector Classification | 0.571
+Classifier | F1 Score | Parameter 1 | Parameter 2
+---------- | -------- | ----------- | -----------
+Logistic Regression | 0.461 | maxIter = 300 | regParam = 0.01
+Random Forest | 0.444 | maxDepth = 3 | numTrees = 100
+Linear Support Vector Classification | 0.571 | maxIter = 100 | regParam = 0.0
 
-The scores for all three classifiers are not impressive. The relatively weak performance can be attributed to the small 
-training set used in the local exploration. This assumption will be tested in the next step by using a larger data set 
-to train the model. 
+The hyperparameters found to best for the classifiers are also given in the table above. I chose to optimize two 
+parameters per classifier on approximately logarithmic grids. 
+
+The maximum iterations parameter of the logistic regression classifier of 300 is the upper bound of the parameter grid, 
+which indicates that the logistic regression fit is not converging well, even though a  quite strong L2 regularization 
+of lambda=0.01 is applied. This result indicated that logistic regression is very well suited to the problem at hand. 
+300 iterations is a quite large value and a least squares regression that does not converge within 300 iterations is 
+unlikely to converge at all.
+
+The parameters of the random forest classifier hit the minimum depth of the parameter grid, and a depth of 3 is 
+basically the minimum depth that makes sense. Again, together with reaching the lowest F1 score of the tested methods,
+this strongly indicates that random forest classification is not the right method for the problem at hand.
+
+The linear SVC shows best performance with a regularization parameter of 0, i.e. no regularization at all. With a 
+maximum iterations count of 100, away from the grid edges, and a clearly better F1 score, linear SVC shows the best 
+performance of the investigated classifiers. 
+
+The F1 scores for all three classifiers are not impressive. The relatively weak performance can be attributed to the 
+small training set used in the local exploration. This assumption will be tested in the next step by using a larger 
+data set to train the model. 
 
 #### Linear Support Vector Classification on Medium Data Set
 
 The medium sized data set used for training in the IBM cloud has log data on 448 distinct users. 34 of these are used for
 testing, the remaining 414 for training of the model.
 
-The distribution of browsers and operating systems is quite interesting, if nothing else, then from a historical 
-perspective. As the figure below shows, there is a strong plurality of Internet Explorer users (user agent Trident) 
-among the data set, which hints at the age of the data set. Equally interesting is the observation that there is a 
-pronounced difference in browser usage between churned and kept users. Safari uses tend to be be represented stronger 
-among the churned than IE users.
+First, I shall investigate the initial hypothesis that user engagement with the Spotify service should be a predictor 
+for the risk of user churn. A good indicator of engagement is the average number of log events in a session per user. 
+The plot below shows a histograms of average event counts per session for churned and kept users. Contrary to 
+the initial hypothesis, there is no clear difference between the two user groups. The only observation is that more 
+churned users have very high event counts per session. However, these only make up a small fraction of all churned 
+users. Still, the feature is likely to give context to the counts and frequencies of different event types, such as 
+the "roll advert" and "next song" events examined further down.
+
+![Histogram of user's average number of log events per session](user_average_events_session.png)
+
+The browser distribution shows a strong overrepresentation of Safari browsers, a significant number of Firefox (Firefox 
+and Gecko) users and only very few Internet Explorer (Trident) users. There are discernibly differences in churn rates 
+between different browser versions, but no clear trends between platforms, except a slightly higher representation of 
+Firefox among churned users. 
    
-![Confusion matrix components ](doc_img/User_Borwser_fractions.png)
+![Histogram of browser versions encountered](doc_img/User_Borwser_fractions.png)
 
-Within the operating systems, it is interesting to see, that also the OS version, not just the family makes a 
-significant difference between churned and non churned users. It should be noted, that the OS and browser fractions 
-will add up to more than 1, since users are rather likely to have accessed spotify using more than one browser or 
-operating system version.
+Within the operating systems it is interesting to see that the OS version but not the family shows a significant 
+difference between churned and non churned users. I.e. there are high and low churn rates for different versions of 
+both Windows and MacOS. The only platform that clearly indicates churn risk is IPhone usage. 
+It should be noted, that both the OS and browser fractions will add  up to more than 1, since users are rather likely 
+to have accessed spotify using more than one browser or operating system version.
 
-![Confusion matrix components ](doc_img/user_os_fractions.png)
+![Histogram of Operating System Versions usage](doc_img/user_os_fractions.png)
 
 The frequency of advertisements rolled out to users per month is quite interesting. It is obtained by dividing the 
 number of roll advert events by the difference between earliest and latest event time stamp in months. To make the 
@@ -276,7 +303,7 @@ majority of non-churned users dies not get any adverts at all. This is likely mo
 status than the effect of adverts. It cannot be decided if adverts are driving users away, or if they were not 
 interested enough in the service to pay for a subscription in the first place. 
 
-![Confusion matrix components ](doc_img/user_add_freq.png)
+![Histogram of "roll advert" frequencies per user](doc_img/user_add_freq.png)
 
 To answer the question, whether the subscription level or advertisements are more important in determining user churn, 
 it is interesting to look at the distribution of the user's maximum subscription level. This is 1 if the user ever 
@@ -285,7 +312,7 @@ is higher among the churned users than the kept ones (even though the difference
 effect of the advert roll frequency is more directly linked to the advertisements and not a side effect of paid 
 subscription.  
 
-![Confusion matrix components ](doc_img/user_maxlev.png)
+![Histogram of maximum subscription level per user](doc_img/user_maxlev.png)
 
 The distribution of "next song" frequencies shown below basically confirms the hypothesis proposed in the exploration 
 selection above. A high frequency of next song events indicates that the respective user does not like the music played 
@@ -293,7 +320,7 @@ to them. If a users is dissatisfied with the available selections or recommendat
 Tellingly, 62% of the non-churned users have less than 20 next song events per month. Curiously, one user has over 400
 next song events per month, but so far has not minded enough to give up.
 
-![Confusion matrix components ](doc_img/user_next_song_freq.png)
+![Histogram of "next song" frequencies per user](doc_img/user_next_song_freq.png)
 
 Looking at the log periods, i.e. is the time difference between earliest and latest log events, the distribution of the 
 kept users is quite interesting. The number is constantly low between 0-30 months, then rises roughly linear. If Spotify 
@@ -303,13 +330,13 @@ is not surprising. Apparently a user is more likely to churn relatively early on
 observation that dissatisfaction with the music selection dives churn. Users are likely to decide this rather earlier 
 than later, instead of waiting a long time for the selection to improve. 
 
-![Confusion matrix components ](doc_img/user_periods.png)
+![Histogram of usage periods](doc_img/user_periods.png)
 
 The final trained model's *F1 score is 0.923*, which constitutes a remarkable improvement over the accuracy that could 
 be obtained on the small size data set. It confirms the assumption, that the exploration data set is simply too small 
 to suffiently train an ML classifier. The figure below shows the confusion matrix as a pie chart.
 
-![Confusion matrix components ](doc_img/IBM_model_test_moc_pie.png) 
+![Confusion matrix components](doc_img/IBM_model_test_moc_pie.png) 
 
 In table form, the confusion matrix is:
 
