@@ -350,6 +350,43 @@ On the test data set, the model produced only one false prediction, which was a 
 Overall, based on the available test data the model performs very well. It should be useful to classify users and give 
 warning about users who may be close to cancelling their subscription.
 
+### Challenges Encountered
+
+Initially, I planned to fit a production model on the full data set using AWS elastic map reduce. However, I was not 
+able to set up a notebook on any EMR cluster. In any attempt, the notebooks would not start on the cluster with 
+permissions error messages. After spending over 15 hours trying to get notebooks to run, neither following the 
+(outdated) course instructions which do not fit the current version of the EMR console any more, nor trying to follow 
+other instructions. Most likely some configuration aspect of my personal AWS account was preventing successful cluster 
+deployment. I then decided to use the IBM Watson Studio option instead. 
+
+At the time of fitting the medium data set in the IBM cloud, the feature extraction used unrestricted pivot operations 
+on the user agent column. This turned out to be a problem, as different values were present in the small exploration 
+set and medium size set used for model training. In fact, it can be expected that even more different values will be 
+present in the full data set. 
+
+Specifically, 10 additional features were extracted from the medium size data set, 1 Additional version of Safari and 
+9 Additional OS versions. To be able to reconstruct the feature columns from the feature vectors, the features were 
+reanalyzed in IBM_Feature_Results.ipynb. Value lists were added to model.py for known operating systems, browsers and 
+log messages. All pivot operations were adapted to use the respective fixed lists of known features to generate 
+consistent sets of feature columns, independent of the data set. This is not only necessary for consistent results 
+between fit data sets, but also to generate feature vectors consistent with the model, when performing inference on 
+data sets distinct from the fitting set. 
+
+Analysis of the dataset had to be updated as some data was assigned to wrong columns by FeatureUnassembler. Conclusion
+details changed slightly.
+
+### Improvement Opportunities
+
+The main opportunity for improvement lies in the extraction of operating system and browser featrues. In the current 
+state. strings are extracted quite simple regular expressions. As a result, the operating system strings contain 
+leaked browser version components. The root cause lies in the ill defined format of user agent strings, which results 
+in a zoo of formats used by different vendors. A larger data set will probably warrant expending more effort on a 
+cleaner data extraction. Possibly a third party library exists which could be used. On top of that, 
+
+Another possible area for improvement is in the format of the log data itself. JSON is a really inefficient storage 
+format with so much overhead, that even CSV would be preferable. For the strictly columnar log data, a format like 
+parquet would offer large efficiency gains with larger data sets.
+
 ## Web Application
 
 The web application is based on the scaffolding provided for the disaster response project.
