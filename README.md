@@ -315,7 +315,8 @@ subscription.
 ![Histogram of maximum subscription level per user](doc_img/user_maxlev.png)
 
 The distribution of "next song" frequencies shown below basically confirms the hypothesis proposed in the exploration 
-selection above. A high frequency of next song events indicates that the respective user does not like the music played 
+selection above. Next song can either be triggered by a song ending and the playlist advancing, or the user skipping a 
+song. Therefore, high frequency of next song events indicates that the respective user does not like the music played 
 to them. If a users is dissatisfied with the available selections or recommendations, they are more likely to leave. 
 Tellingly, 62% of the non-churned users have less than 20 next song events per month. Curiously, one user has over 400
 next song events per month, but so far has not minded enough to give up.
