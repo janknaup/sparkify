@@ -8,13 +8,13 @@
 {% endblock %}
 
 {% block content %}
-    <h1 class="text-center">Result</h1>
+    <h1 class="text-center">User Churn Risk</h1>
         <ul class="list-group">
-            {% for userId, prediction in classification_result.items() %}
-                {% if classification == 1 %}
-                    <li class="list-group-item list-group-item-success text-center">{{category.replace('_', ' ').title()}}</li>
+            {% for userId, prediction in classification_result %}
+                {% if prediction == 1 %}
+                    <li class="list-group-item list-group-item-danger text-center">{{userId}}</li>
                 {% else %}
-                    <li class="list-group-item list-group-item-dark text-center">{{category.replace('_', ' ').title()}}</li>
+                    <li class="list-group-item list-group-item-success text-center">{{userId}}</li>
                 {% endif %}
             {% endfor %}
 
