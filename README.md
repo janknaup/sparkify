@@ -387,19 +387,65 @@ Another possible area for improvement is in the format of the log data itself. J
 format with so much overhead, that even CSV would be preferable. For the strictly columnar log data, a format like 
 parquet would offer large efficiency gains with larger data sets.
 
-## Web Application
+The security of the web application must to be improved. Currently no limits or checks are performed on the uploaded 
+log files. This is clearly unsuitable for a production or public facing environment.
 
-The web application is based on the scaffolding provided for the disaster response project.
+Many general improvements on the web application are conceivable, including adding of spinners and progress indicators 
+for the inference page, which is slow on the puny virtual machine used for hosting the web application. 
+
+### Web Application
+
+The web application is based on the scaffolding provided for the disaster response project. 
+
+### Usage
+
+The main page displays a dashboard view of the training data sets, training results and feature statistics.
+
+Churn risk can be inferred using the model trained in IBM Watson studio by selecting a log file in the same json format 
+as the training data. To analyze a log, select the file in the Form at the top of the main page and press the 
+"Upload and Classify" button. The classification process wil take while, depending on the CPU speed of the web server.
+
+The classification results will be displayed as a list of users ids with green background, if the user is classified as 
+not churned. A red background will mark users found likely to churn.
+
+### Installation instructions
+
+To setup a simple version of the web application, install a python venv which fulfills the following requirements. 
+
+* Python >= 3.6.9
+* Flask>=1.1.0
+* numpy>=1.19.0
+* pandas>=1.1.0
+* plotly>=4.10.0
+* pyspark>=3.0.0
+
+Copy the contents of the app subdirectory of the git repository into an appropriate directory on the web application 
+server.
+
+Ensure the JAVA_HOME environment variable points to a JDK installation compatible with the spark implementation to be 
+used. Ensure the SPARK_HOME environment variable points to a local spark installation of at least version 2.5.4.
+
+Run the development server by calling
+
+    python run.py    
+
+from within the app directory. Alternatively, the app can be run through a WSGI server.
 
 ## Prerequisites
 ### Python Version
-Requires Python version 3.7 or higher (tested using version 3.8.3)
+Requires Python version 3.6.9 or higher (tested using version 3.8.3)
 
 ### Libraries
-* jupyter 1.0.0
-* numpy 1.19.1
-* pandas 1.1.0
-* plotly 4.8.2
-* pyspark 3.0.0
-* spark 2.5.4
-* flask 1.1.0
+* jupyter >= 1.0.0
+* numpy >= 1.19.1
+* pandas >= 1.1.0
+* plotly >= 4.8.2
+* pyspark >= 3.0.0
+* spark >= 2.5.4
+* flask >= 1.1.0
+
+## References
+
+* File upload handling in the web app adapted from tutorial content at 
+  [roytuts.com](https://www.roytuts.com/python-flask-file-upload-example/)
+* Web application scaffolding taken from the disaster response pipeline course project
