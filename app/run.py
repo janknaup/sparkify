@@ -1,8 +1,9 @@
 import json
 import plotly
+import os
 
 from flask import Flask
-from flask import render_template, request, jsonify
+from flask import render_template, request, flash, redirect
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -23,10 +24,13 @@ spark = SparkSession \
 
 
 app = Flask(__name__)
+
+# load trained model
 spark.sparkContext.addFile('lsvc_model', recursive=True)
 spark.sparkContext.addFile('mini_sparkify_event.json', recursive=True)
 model = LinearSVCModel.load(SparkFiles.get('lsvc_model'))
-# load training data set stats
+
+# load training data set stats for stats dashboard
 df_pred = spark.read.json('results_model/lsvc-prediction.json')
 schema = StructType([StructField('userId', LongType(), False),
                      StructField('features', VectorUDT(), False),
@@ -34,9 +38,11 @@ schema = StructType([StructField('userId', LongType(), False),
 df_train = spark.read.json('results_model/traindata.json', schema=schema)
 df_test = spark.read.json('results_model/testdata.json', schema=schema)
 df_all = df_train.union(df_test)
+
 # restore feature columns from features vector
 feature_una = FeatureUnassembler()
 unassembled = feature_una.transform(df_all).join(df_all.select('userId', 'label'), on='userId')
+
 # count stats
 unassembled_bylabel = unassembled.groupBy('label')
 hist_dist = unassembled_bylabel.agg(*[(F.sum(col)/F.count(col)).alias(col) for col in KNOWN_OS + KNOWN_BROWSERS])
@@ -58,21 +64,23 @@ kept_browsers = [bd_kept[browser] for browser in KNOWN_BROWSERS]
 bd_churn = hist_dist.filter(F.col('label') == 1).collect()[0].asDict()
 churn_browsers = [bd_churn[browser] for browser in KNOWN_BROWSERS]
 
+# extract data for pie chart visuals
+confusion_counts = df_pred.withColumn('true negative', ((1.0 - F.col('prediction')) * (1.0 - F.col('label'))))\
+    .agg(F.sum('tp').alias('true positive'), F.sum('fp').alias('false positive'),
+         F.sum('fn').alias('false negative'), F.sum('true negative').alias('true negative'))
+
+confusion_names = confusion_counts.columns
+confusion_values = [confusion_counts.collect()[0][col] for col in confusion_names]
+
+label_names = ['training kept', 'training churned', 'test kept', 'test_churned']
+label_counts = [df_train.filter(F.col('label') == 0).count(), df_train.filter(F.col('label') == 1).count(),
+                df_test.filter(F.col('label') == 0).count(), df_test.filter(F.col('label') == 1).count()]
 
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
-    
-    # extract data needed for visuals
-    confusion_counts = df_pred.withColumn('true negative', ((1.0 - F.col('prediction')) * (1.0 - F.col('label'))))\
-        .agg(F.sum('tp').alias('true positive'), F.sum('fp').alias('false positive'),
-             F.sum('fn').alias('false negative'), F.sum('true negative').alias('true negative'))
-
-    confusion_names = confusion_counts.columns
-    confusion_values = [confusion_counts.collect()[0][col] for col in confusion_names]
-
     # create visuals
     graphs = [
         {
@@ -91,6 +99,22 @@ def index():
                 'xaxis': {
                     'title': "Classification Result"
                 }
+            }
+        },
+
+        {
+            'data': [
+                gob.Pie(
+                    labels=label_names,
+                    values=label_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Label Distribution',
+                'yaxis': {
+                    'title': "Count"
+                },
             }
         },
 
@@ -210,22 +234,46 @@ def go():
     data_schema = "artist STRING, auth STRING, firstName STRING, gender STRING, itemInSession INT, lastName STRING," \
                   "length DOUBLE, level STRING, location STRING, method STRING, page STRING, registration LONG," \
                   "sessionId INT, song STRING, status int, ts LONG, userAgent STRING, userId STRING"
-    df_data = spark.read.json(SparkFiles.get('mini_sparkify_event.json'), schema=data_schema)\
-        .withColumn('iuid', F.col('userId').cast('long')).drop('userId').withColumnRenamed('iuid', 'userId')
-    cleaner = LogCleanTransformer()
-    mtr = UserLogTransformer()
-    ta = TrainingAssembler()
-    df_data_pred = model.transform(ta.transform(mtr.transform(cleaner.transform(df_data))))
-    classification_labels = df_data_pred.select('userId', 'prediction').orderBy('userId').collect()
-    classification_results = [(lab['userId'], lab['prediction']) for lab in classification_labels]
+    if os.path.exists('uploads/inference.json'):
+        df_data = spark.read.json('uploads/inference.json', schema=data_schema)\
+            .withColumn('iuid', F.col('userId').cast('long')).drop('userId').withColumnRenamed('iuid', 'userId')
+        cleaner = LogCleanTransformer()
+        mtr = UserLogTransformer()
+        ta = TrainingAssembler()
+        df_data_pred = model.transform(ta.transform(mtr.transform(cleaner.transform(df_data))))
+        classification_labels = df_data_pred.select('userId', 'prediction').orderBy('userId').collect()
+        classification_results = [(lab['userId'], lab['prediction']) for lab in classification_labels]
+        # clean up for next inference
+        os.unlink('uploads/inference.json')
+        # This will render the go.html Please see that file.
+        return render_template(
+            'go.html',
+            query=query,
+            classification_result=classification_results
+        )
+    else:
+        return redirect('/')
 
-    # This will render the go.html Please see that file. 
-    return render_template(
-        'go.html',
-        query=query,
-        classification_result=classification_results
-    )
 
+@app.route('/logupload', methods=['POST'])
+def logupload():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            print('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            print('No file selected for uploading')
+            return redirect(request.url)
+        if file:
+            file.save(os.path.join(os.getcwd(), 'uploads', 'inference.json'))
+            print('File successfully uploaded')
+            return redirect('/go')
+        else:
+            return redirect(request.url)
+    else:
+        return redirect(request.url)
 
 def main():
     app.run(host='0.0.0.0', port=3001, debug=True)

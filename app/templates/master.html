@@ -37,23 +37,16 @@
         <hr />
       
         <div class="row">
-            <div class="col-lg-6 form-group-lg">
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
-                  </div>
-                  <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="inputGroupFile01"
-                      aria-describedby="inputGroupFileAddon01">
-                    <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
-                  </div>
-                </div>
-            </div>
-            <div class="col-lg-6 form-group-lg">
-                <form action="/go" method="get">
-                    <input type="text" class="form-control form-control-lg" name="query" placeholder="Enter Log json data to classify">
-                    <div class="col-lg-offset-5">
-                        <button type="submit" class="btn btn-lg btn-success">Classify Message</button>
+            <div class="col-lg-12 form-group-lg">
+                <form action="/logupload" method="post" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="file" aria-describedby="inputGroupFileAddon04" name="file" autocomplete="off" required>
+                            <label class="custom-file-label" for="file">Choose file</label>
+                        </div>
+                        <div class="input-group-append">
+                            <button class="btn btn-lg btn-success" type="submit" id="inputGroupFileAddon">Upload and Classify</button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -66,14 +59,33 @@
 
 <div class="container">
     {% block content %}
-        <div class="page-header">
-            <h1 class="text-center">Overview of Training Dataset</h1>
-        </div>
+    <div class="page-header">
+        <h1 class="text-center">Overview of Training ML Model</h1>
+    </div>
     {% endblock %}
-
-    {% for id in ids %}
-        <div id="{{id}}"></div>
-    {% endfor %}
+    {% if ids %}
+    <div id="charts" class="container mt-3 text-center">
+        <div class="row"><h2 class="text-center">Model Training Overview</h2></div>
+        <!--model stats charts-->
+        <div class="row">
+            <div class="col-sm-6">
+                <div id="{{ids[0]}}"></div>
+            </div>
+            <div class="col-sm-6">
+                <div id="{{ids[1]}}"></div>
+            </div>
+        </div>
+        <!--feature stat charts-->
+        <div class="row"><h2 class="text-center">Dataset Overview</h2></div>
+        {% for id in ids[2:] %}
+        <div class="row">
+            <div class="col-md-12">
+                <div id="{{id}}"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 
 <script type="text/javascript">
