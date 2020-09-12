@@ -279,7 +279,7 @@ churned users have very high event counts per session. However, these only make 
 users. Still, the feature is likely to give context to the counts and frequencies of different event types, such as 
 the "roll advert" and "next song" events examined further down.
 
-![Histogram of user's average number of log events per session](user_average_events_session.png)
+![Histogram of user's average number of log events per session](doc_img/user_average_events_session.png)
 
 The browser distribution shows a strong overrepresentation of Safari browsers, a significant number of Firefox (Firefox 
 and Gecko) users and only very few Internet Explorer (Trident) users. There are discernibly differences in churn rates 
