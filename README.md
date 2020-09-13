@@ -49,6 +49,29 @@ Note that this schema is already typed via the schema definition and preprocessi
 subscription and I use "confirm cancellation" events in the log. I 52 of these in the log excerpt. It contains 225 
 distinct userIds, 52 of which have churned, the remaining 173 users were kept.
 
+The columns in the data set are: 
+
+* *song*: Song name related to the event. Will be ignored.
+* *artist*: Name of the song artist the log event relates to (if relevant). Will be ignored.
+* *length*: Song length, will be ignored.
+* *auth*:  User authentication status (logged in or not). Can only be logged in for events that are related to a user id 
+  and can therefore be analyzed analyzed. 
+* *userId*: Numerical ID of the users. The goal is to predict user behavior, hence this is the primary identifier for
+  Primary aggregation column for all features.
+* *firstName*: User's first name. 
+* *lastName*: User's last name.
+* *gender*:  User's gender (m/f) Will be used as a feature mapped to m=0, f=1.
+* *registration*: Time stamp of user registration.
+* *sessionId*: Id of the user session an event occurs in. Will be aggregated to session length statistics.
+* *itemInSession*: Serial number of log event in a usage session. Will be ignored.
+* *page*: The log event type, will be aggregated to principal features.
+* *level*: Subscription level, free or paid. Will be remapped to free = 0, paid = 1 and aggregated as a feature.
+* *location*: User's location at the time of the event. Will be ignored.
+* *method*: HTTP submission method of the event. Will be ignored.
+* *status*: HTTP return status, will be ignored.
+* *ts*: Time stamp of the log event. Will be aggregated into features.
+* *userAgent*: User agent string of the browser/client employed by the user. Will be
+
 The highest level comparison between users is the number of their logged interactions.
 ![Histogram of users by number of their associated log events](doc_img/Interactions_per_user.png)
 
@@ -134,9 +157,9 @@ easily by SQL-like operations:
 * user base data:
     * gender
     * level - paid or unpaid subscription
-    * level changed during the logged period
-    * registration (time tamp)
-* aggregated event data
+    * level changed during the logged period (1=yes, 0=no)
+    * registration (time stamp)
+* aggregated event data (from session id column)
     * mean number of log events per session
     * minimum number of events per session
     * maximum number of events per session
@@ -171,7 +194,7 @@ easily by SQL-like operations:
     
 User first- and last name, as well as song names are not evaluated here. While on a much larger data set, user names 
 might allow some groupings by cultural or economic background, a set of only 225 users cannot possibly allow any 
-meaningul results in this regard. Therefore, the user's names must be regarded as random with respect to preferences and
+meaningful results in this regard. Therefore, the user's names must be regarded as random with respect to preferences and
 churn likelihood.
 
 Song names would add a huge number of categorical variables and users outside the training set, on which the model 
@@ -351,6 +374,46 @@ On the test data set, the model produced only one false prediction, which was a 
 Overall, based on the available test data the model performs very well. It should be useful to classify users and give 
 warning about users who may be close to cancelling their subscription.
 
+### Web Application
+
+The web application is based on the scaffolding provided for the disaster response project. 
+
+### Usage
+
+The main page displays a dashboard view of the training data sets, training results and feature statistics.
+
+Churn risk can be inferred using the model trained in IBM Watson studio by selecting a log file in the same json format 
+as the training data. To analyze a log, select the file in the Form at the top of the main page and press the 
+"Upload and Classify" button. The classification process wil take while, depending on the CPU speed of the web server.
+
+The classification results will be displayed as a list of users ids with green background, if the user is classified as 
+not churned. A red background will mark users found likely to churn.
+
+### Installation instructions
+
+To setup a simple version of the web application, install a python venv which fulfills the following requirements. 
+
+* Python >= 3.6.9
+* Flask>=1.1.0
+* numpy>=1.19.0
+* pandas>=1.1.0
+* plotly>=4.10.0
+* pyspark>=3.0.0
+
+Copy the contents of the app subdirectory of the git repository into an appropriate directory on the web application 
+server.
+
+Ensure the JAVA_HOME environment variable points to a JDK installation compatible with the spark implementation to be 
+used. Ensure the SPARK_HOME environment variable points to a local spark installation of at least version 2.5.4.
+
+Run the development server by calling
+
+    python run.py    
+
+from within the app directory. Alternatively, the app can be run through a WSGI server.
+
+## Summary
+
 ### Challenges Encountered
 
 Initially, I planned to fit a production model on the full data set using AWS elastic map reduce. However, I was not 
@@ -392,51 +455,33 @@ The security of the web application must to be improved. Currently no limits or 
 log files. This is clearly unsuitable for a production or public facing environment.
 
 Many general improvements on the web application are conceivable, including adding of spinners and progress indicators 
-for the inference page, which is slow on the puny virtual machine used for hosting the web application. 
+for the inference page, which is slow on the puny virtual machine used for hosting the web application.
 
-### Web Application
+For a production environment, the web application should use a background process that continually checks users and 
+output those at churn risk. However, this requires more substantial compute resources and only makes sense when coupled 
+to the server logs at least near realtime. This cannot be done within the scope of the present project.   
 
-The web application is based on the scaffolding provided for the disaster response project. 
+### Conclusions
 
-### Usage
+The project results show that machine learning can be a useful tool for customer relations management. One application 
+is to help identify customers at risk of canceling their subscriptions. This enables on one hand enables taking 
+targeted measures to retain the specific customers identified. On the other hand it also enables analysis of common 
+factors of users at risk of churning. This can help to improve the service to improve customer retention. 
 
-The main page displays a dashboard view of the training data sets, training results and feature statistics.
+The most impressive observation during the project was seeing how doubling the size of the training data set allowed to 
+improve the prediction F1 score from a very mediocre 0.57 to quite acceptable 0.92. It demonstrates the value of data 
+very strongly.
 
-Churn risk can be inferred using the model trained in IBM Watson studio by selecting a log file in the same json format 
-as the training data. To analyze a log, select the file in the Form at the top of the main page and press the 
-"Upload and Classify" button. The classification process wil take while, depending on the CPU speed of the web server.
+In summary, the project can regarded judged as successful. I succeeded in building a classification model that can 
+identify users close to churning with good success. I built a web dashboard to show statistics on the user base and 
+allow prediction of churn risk on uploaded user logs.
 
-The classification results will be displayed as a list of users ids with green background, if the user is classified as 
-not churned. A red background will mark users found likely to churn.
-
-### Installation instructions
-
-To setup a simple version of the web application, install a python venv which fulfills the following requirements. 
-
-* Python >= 3.6.9
-* Flask>=1.1.0
-* numpy>=1.19.0
-* pandas>=1.1.0
-* plotly>=4.10.0
-* pyspark>=3.0.0
-
-Copy the contents of the app subdirectory of the git repository into an appropriate directory on the web application 
-server.
-
-Ensure the JAVA_HOME environment variable points to a JDK installation compatible with the spark implementation to be 
-used. Ensure the SPARK_HOME environment variable points to a local spark installation of at least version 2.5.4.
-
-Run the development server by calling
-
-    python run.py    
-
-from within the app directory. Alternatively, the app can be run through a WSGI server.
-
-## Prerequisites
-### Python Version
+## Appendix
+### Notebook Prerequisites
+#### Python Version
 Requires Python version 3.6.9 or higher (tested using version 3.8.3)
 
-### Libraries
+#### Libraries
 * jupyter >= 1.0.0
 * numpy >= 1.19.1
 * pandas >= 1.1.0
@@ -445,7 +490,7 @@ Requires Python version 3.6.9 or higher (tested using version 3.8.3)
 * spark >= 2.5.4
 * flask >= 1.1.0
 
-## References
+### References
 
 * File upload handling in the web app adapted from tutorial content at 
   [roytuts.com](https://www.roytuts.com/python-flask-file-upload-example/)
